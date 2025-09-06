@@ -48,7 +48,7 @@ def export_data(df: pl.DataFrame, fmt: str, output_path: str):
     fmt = fmt.lower()
     if fmt == "json":
         path = path.with_suffix(".json")
-        df.write_json(path, row_oriented=True)
+        df.write_json(path)
     elif fmt == "parquet":
         path = path.with_suffix(".parquet")
         df.write_parquet(path)
@@ -67,21 +67,17 @@ def export_data(df: pl.DataFrame, fmt: str, output_path: str):
             path = path.with_suffix(".xlsx")
             df.to_pandas().to_excel(path, index=False)
     elif fmt == "xls":
-        if df.height > EXCEL_MAX_ROWS_XLS:
-            typer.secho(
-                f"⚠️ {df.height:,} lignes dépassent la limite XLS ({EXCEL_MAX_ROWS_XLS:,}). "
-                "Export en XLSX ou Parquet.",
-                fg=typer.colors.YELLOW,
-            )
-            if df.height <= EXCEL_MAX_ROWS_XLSX:
-                path = path.with_suffix(".xlsx")
-                df.to_pandas().to_excel(path, index=False)
-            else:
-                path = path.with_suffix(".parquet")
-                df.write_parquet(path)
+        typer.secho(
+            "⚠️ Format XLS obsolète. Export en XLSX à la place.",
+            fg=typer.colors.YELLOW,
+        )
+        if df.height > EXCEL_MAX_ROWS_XLSX:
+            path = path.with_suffix(".parquet")
+            df.write_parquet(path)
         else:
-            path = path.with_suffix(".xls")
-            df.to_pandas().to_excel(path, index=False, engine="xlwt")
+            path = path.with_suffix(".xlsx")
+            df.to_pandas().to_excel(path, index=False)
+
     else:
         raise ValueError(f"Format non supporté : {fmt}")
 
@@ -167,6 +163,9 @@ def export_all(config_file: str, workers: int = typer.Option(4, help="Nombre de 
 
 @app.command()
 def export_one(config_file: str, export_name: str):
+    """
+    Exécute un seul export identifié par son 'name' dans le fichier TOML.
+    """
     config = load_config(config_file)
     exports = config.get("exports", [])
     match = next((e for e in exports if e.get("name") == export_name), None)
@@ -176,7 +175,34 @@ def export_one(config_file: str, export_name: str):
         raise typer.Exit(code=1)
 
     typer.echo(f"\n🚀 [{export_name}] Exécution de la requête : {match['query']}")
-    run_export((match, config, Manager().Queue()))
+
+    start = time.time()
+    try:
+        client = clickhouse_connect.get_client(
+            host=config["clickhouse"]["host"],
+            port=int(config["clickhouse"]["port"]),
+            username=config["clickhouse"]["username"],
+            password=config["clickhouse"]["password"],
+            database=config["clickhouse"]["database"],
+        )
+
+        result = client.query_arrow(match["query"])
+        df = pl.from_arrow(result)
+
+        path = export_data(df, match["format"], match["output_path"])
+        duration = round(time.time() - start, 2)
+
+        typer.secho(
+            f"✅ {export_name} : {df.height:,} lignes exportées en {duration}s -> {path}",
+            fg=typer.colors.GREEN,
+        )
+    except Exception as e:
+        duration = round(time.time() - start, 2)
+        typer.secho(
+            f"❌ {export_name} : erreur en {duration}s -> {str(e)}",
+            fg=typer.colors.RED,
+        )
+
 
 
 if __name__ == "__main__":

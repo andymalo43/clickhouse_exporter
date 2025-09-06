@@ -15,7 +15,7 @@ output_path = "output/users1"
 [[exports]]
 name = "users_export2"
 query = "SELECT * FROM northwind___categories"
-format = "xlsx"
+format = "xls"
 output_path = "output/users2"
 
 
