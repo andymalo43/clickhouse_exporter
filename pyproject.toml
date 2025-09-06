@@ -1,0 +1,15 @@
+[project]
+name = "clickhouse-exporter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "clickhouse-connect>=0.8.18",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.2",
+    "polars>=1.33.0",
+    "pyarrow>=21.0.0",
+    "tqdm>=4.67.1",
+    "typer>=0.17.4",
+]

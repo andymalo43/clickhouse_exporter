@@ -1,0 +1,32 @@
+[clickhouse]
+host = "localhost"
+port = 8123
+username = "admin"
+password = "qwerty"
+database = "dlt"
+
+# Liste des exports
+[[exports]]
+name = "users_export1"
+query = "SELECT * FROM northwind___categories"
+format = "parquet"
+output_path = "output/users1"
+
+[[exports]]
+name = "users_export2"
+query = "SELECT * FROM northwind___categories"
+format = "xlsx"
+output_path = "output/users2"
+
+
+[[exports]]
+name = "users_export3"
+query = "SELECT * FROM northwind___categories"
+format = "json"
+output_path = "output/users3"
+
+[[exports]]
+name = "users_export4"
+query = "SELECT * FROM northwind___categories"
+format = "csv"
+output_path = "output/users4"
