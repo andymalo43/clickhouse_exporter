@@ -141,7 +141,7 @@ def export_all(config_file: str, workers: int = typer.Option(4, help="Nombre de 
     with Pool(processes=workers) as pool:
         res = pool.map_async(run_export, pool_args)
 
-        for _ in tqdm(range(len(exports)), desc="Exports", ncols=100):
+        for _ in tqdm(range(len(exports)), desc="Exports", ncols=50):
             while not queue.empty():
                 item = queue.get()
                 if item["status"] == "success":
